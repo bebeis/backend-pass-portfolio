@@ -25,9 +25,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.test.context.TestPropertySource;
 
 @Slf4j
 @IntegrationTest
+// 커넥션 설정
+@TestPropertySource(properties = {
+    "spring.datasource.hikari.maximum-pool-size=32",
+    "spring.datasource.hikari.minimum-idle=5"
+})
 class EventJoinWithExternalConnectionPoolTest {
     private static final int BACKGROUND_THREAD_COUNT = 28;  // 28개 커넥션 점유
     private static final int TEST_THREAD_COUNT = 20;

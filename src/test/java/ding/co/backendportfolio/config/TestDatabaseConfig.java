@@ -28,6 +28,9 @@ public class TestDatabaseConfig {
         System.setProperty("spring.datasource.url", originalJdbcUrl);
         System.setProperty("spring.datasource.username", mysqlContainer.getUsername());
         System.setProperty("spring.datasource.password", mysqlContainer.getPassword());
+
+        System.setProperty("spring.datasource.hikari.maximum-pool-size", "100");
+        System.setProperty("spring.datasource.hikari.minimum-idle", "10");
     }
 
     @Bean
