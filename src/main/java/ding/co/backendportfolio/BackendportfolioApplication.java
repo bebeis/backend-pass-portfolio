@@ -9,7 +9,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 public class BackendportfolioApplication {
+
     public static void main(String[] args) {
+        System.out.println("hello world");
         SpringApplication.run(BackendportfolioApplication.class, args);
     }
 

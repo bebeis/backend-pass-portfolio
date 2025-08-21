@@ -47,6 +47,26 @@ resource "aws_subnet" "public_2" {
   }
 }
 
+# Private 서브넷 (RDS 전용)
+resource "aws_subnet" "private_1" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-northeast-2a"
+  map_public_ip_on_launch = false
+
+  tags = { Name = "portfolio-private-1" }
+}
+
+resource "aws_subnet" "private_2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "ap-northeast-2c"
+  map_public_ip_on_launch = false
+
+  tags = { Name = "portfolio-private-2" }
+}
+
+
 # Public 라우팅 테이블
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -180,7 +200,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # EC2 인스턴스
 resource "aws_instance" "app" {
   ami           = "ami-0e9bfdb247cc8de84"  # Ubuntu 22.04 LTS AMI
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
   subnet_id     = aws_subnet.public_1.id
 
   # 세부 모니터링 활성화
@@ -355,22 +375,32 @@ resource "aws_security_group" "rds" {
   vpc_id      = aws_vpc.main.id
 
   # 외부에서의 MySQL 접속 허용
-  ingress {
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    cidr_blocks     = ["0.0.0.0/0"]  # 모든 IP에서 접근 가능
-  }
+#   ingress {
+#     from_port       = 3306
+#     to_port         = 3306
+#     protocol        = "tcp"
+#     cidr_blocks     = ["0.0.0.0/0"]  # 모든 IP에서 접근 가능
+#   }
 
   tags = {
     Name = "portfolio-rds-sg"
   }
 }
 
+# RDS 에 대해 EC2에서만 접근 허용 (별도 리소스로 만듦)
+resource "aws_security_group_rule" "rds_from_ec2" {
+  type                     = "ingress"
+  from_port                = 3306
+  to_port                  = 3306
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.rds.id
+  source_security_group_id = aws_security_group.ec2.id
+}
+
 # RDS 서브넷 그룹
 resource "aws_db_subnet_group" "rds" {
   name       = "portfolio-rds-subnet-group"
-  subnet_ids = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 
   tags = {
     Name = "portfolio-rds-subnet-group"
@@ -418,7 +448,7 @@ resource "aws_db_instance" "portfolio" {
   db_subnet_group_name   = aws_db_subnet_group.rds.name
   
   skip_final_snapshot    = true
-  publicly_accessible    = true
+  publicly_accessible    = false
   
   monitoring_interval = 60  # 60초마다 지표 수집
   monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
